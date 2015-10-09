@@ -1,8 +1,10 @@
 CXX=g++
 CFLAGS=-O3 -D_FILE_OFFSET_BITS=64
 
+all: fastahack
+
 fastahack: Fasta.o FastaHack.cpp split.o disorder.o
-	$(CXX) $(CFLAGS) Fasta.o FastaHack.cpp split.o disorder.o -o fastahack
+	$(CXX) $(CFLAGS) Fasta.o FastaHack.cpp split.o disorder.o -o fastahack -lboost_iostreams
 
 Fasta.o: Fasta.h Fasta.cpp
 	$(CXX) $(CFLAGS) -c Fasta.cpp

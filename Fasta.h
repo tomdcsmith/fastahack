@@ -24,6 +24,11 @@
 #include <ctype.h>
 #include <unistd.h>
 #include "Region.h"
+//
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 
 using namespace std;
 
