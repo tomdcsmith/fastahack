@@ -113,109 +113,104 @@ void FastaIndex::indexReference(string refname) {
 
     ifstream refFile;
 
-    //
-    bool isGzip = false;
-    refFile.open(refname.c_str(), ios::in | ios::out | ios::binary);
-    char* data = new char[2];
-    refFile.read(data, 2);
-    cout << (int)data[0] << " " << (int)data[1] << endl;
     
-    //    if((data[0] == 0x1f) && (data[1] == 0x8b)){
+    bool isGzip = false;
+    refFile.open(refname.c_str(), ios::in | ios::binary);
+    char data[2];
+    refFile.read(data, 2);
+    
+//        if((data[0] == 0x1f) && (data[1] == 0x8b)){
     if( ( ( (int)data[0] == 12) && ( (int)data[1] == 36) ) ||
             ( ((int)data[0] == 31) && ((int)data[1] == -117) ) ){
     	isGzip = true;
     }
-    delete [] data;
     refFile.close();
     
-    if (!isGzip){
-        refFile.open(refname.c_str());
-    }else{
-        refFile.open(refname.c_str(), ios::in | ios::out | ios::binary);
-    }
-    //
+    istream* incoming;
     
-    if (isGzip || refFile.is_open()) {
-    	istream* incoming;
-    	if (isGzip){
-            boost::iostreams::filtering_streambuf<boost::iostreams::input> fsb;
-            fsb.push(boost::iostreams::gzip_decompressor());
-            fsb.push(refFile);
-            incoming = new istream(&fsb);
-//            string adc;
-//            getline(*incoming, adc);
-//            cout << adc << endl;
-    	}else{
-            incoming = &refFile;
-    	}
-        
-        
-    	while (getline(*incoming, line)) {
-            ++line_number;
-            line_length = line.length();
-            if (line[0] == ';') {
-                // fasta comment, skip
-            } else if (line[0] == '+') {
-            	printf("line161\n");
-                // fastq quality header
-                getline(*incoming, line);
-                line_length = line.length();
-                offset += line_length + 1;
-                // get and don't handle the quality line
-                getline(*incoming, line);
-                line_length = line.length();
-            } else if (line[0] == '>' || line[0] == '@') { // fasta /fastq header
-                // if we aren't on the first entry, push the last sequence into the index
-                if (entry.name != "") {
-                    mismatchedLineLengths = false; // reset line length error tracker for every new sequence
-                    emptyLine = false;
-                    flushEntryToIndex(entry);
-                    entry.clear();
-                }
-                entry.name = line.substr(1, line_length - 1);
-            } else { // we assume we have found a sequence line
-                if (entry.offset == -1) // NB initially the offset is -1
-                    entry.offset = offset;
-                entry.length += line_length;
-                if (entry.line_len) {
-                    //entry.line_len = entry.line_len ? entry.line_len : line_length + 1;
-                    if (mismatchedLineLengths || emptyLine) {
-                        if (line_length == 0) {
-                            emptyLine = true; // flag empty lines, raise error only if this is embedded in the sequence
-                        } else {
-                            if (emptyLine) {
-                                cerr << "ERROR: embedded newline";
-                            } else {
-                                cerr << "ERROR: mismatched line lengths";
-                            }
-                            cerr << " at line " << line_number << " within sequence " << entry.name <<
-                                endl << "File not suitable for fasta index generation." << endl;
-                            exit(1);
-                        }
-                    }
-                    // this flag is set here and checked on the next line
-                    // because we may have reached the end of the sequence, in
-                    // which case a mismatched line length is OK
-                    if (entry.line_len != line_length + 1) {
-                        mismatchedLineLengths = true;
-                        if (line_length == 0) {
-                            emptyLine = true; // flag empty lines, raise error only if this is embedded in the sequence
-                        }
-                    }
-                } else {
-                    entry.line_len = line_length + 1; // first line
-                }
-                entry.line_blen = entry.line_len - 1;
-            }
-            offset += line_length + 1;
+    ifstream refFile2(refname.c_str());
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> fsb;
+    fsb.push(boost::iostreams::gzip_decompressor());
+    fsb.push(refFile2);
+    std::istream streamA(&fsb);
+    
+    if (isGzip) {
+        incoming = &streamA;
+    } 
+    else {
+        refFile.open(refname.c_str()); 
+        if (!refFile.is_open()) {
+            cerr << "could not open reference file " << refname << " for indexing!" << endl;
+            exit(1);
         }
-        // we've hit the end of the fasta file!
-        // flush the last entry
-        flushEntryToIndex(entry);
-    } else {
-        cerr << "could not open reference file " << refname << " for indexing!" << endl;
-        exit(1);
+        incoming = &refFile;
     }
+    
+    while (std::getline(*incoming, line)) {
+        ++line_number;
+        line_length = line.length();
+        if (line[0] == ';') {
+            // fasta comment, skip
+        } else if (line[0] == '+') {
+            // fastq quality header
+            getline(*incoming, line);
+            line_length = line.length();
+            offset += line_length + 1;
+            // get and don't handle the quality line
+            getline(*incoming, line);
+            line_length = line.length();
+        } else if (line[0] == '>' || line[0] == '@') { // fasta /fastq header
+            // if we aren't on the first entry, push the last sequence into the index
+            if (entry.name != "") {
+                mismatchedLineLengths = false; // reset line length error tracker for every new sequence
+                emptyLine = false;
+                flushEntryToIndex(entry);
+                entry.clear();
+            }
+            entry.name = line.substr(1, line_length - 1);
+        } else { // we assume we have found a sequence line
+            if (entry.offset == -1) // NB initially the offset is -1
+                entry.offset = offset;
+            entry.length += line_length;
+            if (entry.line_len) {
+                //entry.line_len = entry.line_len ? entry.line_len : line_length + 1;
+                if (mismatchedLineLengths || emptyLine) {
+                    if (line_length == 0) {
+                        emptyLine = true; // flag empty lines, raise error only if this is embedded in the sequence
+                    } else {
+                        if (emptyLine) {
+                            cerr << "ERROR: embedded newline";
+                        } else {
+                            cerr << "ERROR: mismatched line lengths";
+                        }
+                        cerr << " at line " << line_number << " within sequence " << entry.name <<
+                                endl << "File not suitable for fasta index generation." << endl;
+                        exit(1);
+                    }
+                }
+                // this flag is set here and checked on the next line
+                // because we may have reached the end of the sequence, in
+                // which case a mismatched line length is OK
+                if (entry.line_len != line_length + 1) {
+                    mismatchedLineLengths = true;
+                    if (line_length == 0) {
+                        emptyLine = true; // flag empty lines, raise error only if this is embedded in the sequence
+                    }
+                }
+            } else {
+                entry.line_len = line_length + 1; // first line
+            }
+            entry.line_blen = entry.line_len - 1;
+        }
+        offset += line_length + 1;
+    }
+    // we've hit the end of the fasta file!
+    // flush the last entry
+    flushEntryToIndex(entry);
+    //    } else {
+    //        cerr << "could not open reference file " << refname << " for indexing!" << endl;
+    //        exit(1);
+    //    }
 }
 
 void FastaIndex::flushEntryToIndex(FastaIndexEntry& entry) {
