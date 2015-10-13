@@ -1,5 +1,5 @@
 CXX=g++
-CFLAGS=-O3 -D_FILE_OFFSET_BITS=64
+CFLAGS=-g -O3 -D_FILE_OFFSET_BITS=64
 
 all: fastahack
 

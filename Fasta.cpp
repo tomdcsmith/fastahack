@@ -119,43 +119,41 @@ void FastaIndex::indexReference(string refname) {
     char* data = new char[2];
     refFile.read(data, 2);
     cout << (int)data[0] << " " << (int)data[1] << endl;
-
-//    if((data[0] == 0x1f) && (data[1] == 0x8b)){
+    
+    //    if((data[0] == 0x1f) && (data[1] == 0x8b)){
     if( ( ( (int)data[0] == 12) && ( (int)data[1] == 36) ) ||
-    		( ((int)data[0] == 31) && ((int)data[1] == -117) ) ){
+            ( ((int)data[0] == 31) && ((int)data[1] == -117) ) ){
     	isGzip = true;
     }
     delete [] data;
     refFile.close();
-
-	if (!isGzip){
-		refFile.open(refname.c_str());
-	}else{
-		refFile.open(refname.c_str(), ios::in | ios::out | ios::binary);
-	}
+    
+    if (!isGzip){
+        refFile.open(refname.c_str());
+    }else{
+        refFile.open(refname.c_str(), ios::in | ios::out | ios::binary);
+    }
     //
-
+    
     if (isGzip || refFile.is_open()) {
     	istream* incoming;
     	if (isGzip){
-    		boost::iostreams::filtering_streambuf<boost::iostreams::input> fsb;
-    		fsb.push(boost::iostreams::gzip_decompressor());
-    		fsb.push(refFile);
-    		incoming = new istream(&fsb);
-    		string adc;
-    		getline(*incoming, adc);
-    		cout << adc << endl;
+            boost::iostreams::filtering_streambuf<boost::iostreams::input> fsb;
+            fsb.push(boost::iostreams::gzip_decompressor());
+            fsb.push(refFile);
+            incoming = new istream(&fsb);
+//            string adc;
+//            getline(*incoming, adc);
+//            cout << adc << endl;
     	}else{
-    		incoming = &refFile;
+            incoming = &refFile;
     	}
-
-
+        
+        
     	while (getline(*incoming, line)) {
-        	printf("line155\n");
             ++line_number;
             line_length = line.length();
             if (line[0] == ';') {
-            	printf("line158\n");
                 // fasta comment, skip
             } else if (line[0] == '+') {
             	printf("line161\n");
