@@ -8,6 +8,21 @@
 
 #include "Fasta.h"
 
+bool isGzippedFile(string filepath){
+    bool isGzip = false;
+    ifstream testFile;
+    testFile.open(filepath.c_str(), ios::in | ios::binary);
+    char data[2];
+    testFile.read(data, 2);
+    
+    if( ( ( (int)data[0] == 12) && ( (int)data[1] == 36) ) ||
+            ( ((int)data[0] == 31) && ((int)data[1] == -117) ) ){
+    	isGzip = true;
+    }
+    
+    testFile.close();
+    return isGzip;
+}
 
 FastaIndexEntry::FastaIndexEntry(string name, int length, long long offset, int line_blen, int line_len)
     : name(name)
@@ -112,19 +127,8 @@ void FastaIndex::indexReference(string refname) {
                              // index generation only on the last line of the sequence
 
     ifstream refFile;
-
-    
-    bool isGzip = false;
-    refFile.open(refname.c_str(), ios::in | ios::binary);
-    char data[2];
-    refFile.read(data, 2);
-    
-//        if((data[0] == 0x1f) && (data[1] == 0x8b)){
-    if( ( ( (int)data[0] == 12) && ( (int)data[1] == 36) ) ||
-            ( ((int)data[0] == 31) && ((int)data[1] == -117) ) ){
-    	isGzip = true;
-    }
-    refFile.close();
+   
+    bool isGzip = isGzippedFile(refname);
     
     istream* incoming;
     
@@ -147,6 +151,7 @@ void FastaIndex::indexReference(string refname) {
     }
     
     while (std::getline(*incoming, line)) {
+//        cout << line << endl;
         ++line_number;
         line_length = line.length();
         if (line[0] == ';') {
@@ -257,9 +262,19 @@ FastaReference::FastaReference(string reffilename) {
 
 void FastaReference::open(string reffilename) {
     filename = reffilename;
-    if (!(file = fopen(filename.c_str(), "r"))) {
-        cerr << "could not open " << filename << endl;
-        exit(1);
+    isGzip = isGzippedFile(reffilename);
+    if (isGzip){
+//        gzFile.gzopen(reffilename, "rt");
+        if (!(gFile = gzopen(filename.c_str(), "rt"))) {
+            cerr << "could not open " << filename << endl;
+            exit(1);
+        }
+    }
+    else{
+        if (!(file = fopen(filename.c_str(), "r"))) {
+            cerr << "could not open " << filename << endl;
+            exit(1);
+        }
     }
     index = new FastaIndex();
     struct stat stFileInfo; 

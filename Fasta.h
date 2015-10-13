@@ -28,6 +28,7 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <zlib.h>
 
 
 using namespace std;
@@ -64,6 +65,9 @@ class FastaIndex : public map<string, FastaIndexEntry> {
 
 class FastaReference {
     public:
+        bool isGzip;
+        gzFile gFile;
+        
         void open(string reffilename);
         bool usingmmap;
         string filename;
