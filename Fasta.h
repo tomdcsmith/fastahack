@@ -68,6 +68,10 @@ class FastaReference {
         bool isGzip;
         gzFile gFile;
         
+        // wrapper functions
+        int refSeek(long offset);
+        int refRead(void* buffer, int size, int count);
+        
         void open(string reffilename);
         bool usingmmap;
         string filename;

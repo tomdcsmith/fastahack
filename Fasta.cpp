@@ -296,14 +296,36 @@ FastaReference::~FastaReference(void) {
       delete index;
 }
 
+int FastaReference::refSeek(long offset) {
+    int result;
+    if(isGzip){
+        result = gzseek(gFile, offset, SEEK_SET);
+    }else{
+        result = fseek64(file, offset, SEEK_SET);
+    }
+    return result;
+}
+
+int FastaReference::refRead(void* buffer, int size, int count) {
+    int result;
+    if(isGzip){
+        result = gzread(gFile, buffer, count);
+    }else{
+        result = fread(buffer, size, count, file);
+    }
+    return result;
+}
+
 string FastaReference::getSequence(string seqname) {
     FastaIndexEntry entry = index->entry(seqname);
     int newlines_in_sequence = entry.length / entry.line_blen;
     int seqlen = newlines_in_sequence  + entry.length;
     char* seq = (char*) calloc (seqlen + 1, sizeof(char));
-    fseek64(file, entry.offset, SEEK_SET);
+//    fseek64(file, entry.offset, SEEK_SET);
+    refSeek(entry.offset);
     string s;
-    if (fread(seq, sizeof(char), seqlen, file)) {
+//    if (fread(seq, sizeof(char), seqlen, file)) {
+    if (refRead(seq, sizeof(char), seqlen)) {
         seq[seqlen] = '\0';
         char* pbegin = seq;
         char* pend = seq + (seqlen/sizeof(char));
@@ -350,9 +372,11 @@ string FastaReference::getSubSequence(string seqname, int start, int length) {
     int newlines_inside = newlines_by_end - newlines_before;
     int seqlen = length + newlines_inside;
     char* seq = (char*) calloc (seqlen + 1, sizeof(char));
-    fseek64(file, (off_t) (entry.offset + newlines_before + start), SEEK_SET);
+//    fseek64(file, (off_t) (entry.offset + newlines_before + start), SEEK_SET);
+    refSeek((off_t) (entry.offset + newlines_before + start));
     string s;
-    if (fread(seq, sizeof(char), (off_t) seqlen, file)) {
+//    if (fread(seq, sizeof(char), (off_t) seqlen, file)) {
+    if (refRead(seq, sizeof(char), (off_t) seqlen)) {
         seq[seqlen] = '\0';
         char* pbegin = seq;
         char* pend = seq + (seqlen/sizeof(char));
