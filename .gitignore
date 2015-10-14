@@ -3,7 +3,7 @@ fastahack
 .project
 .cproject
 nbproject
-
+.settings
 
 nbproject/private/
 build/
