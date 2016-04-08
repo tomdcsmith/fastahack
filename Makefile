@@ -1,21 +1,44 @@
 CXX=g++
-CFLAGS=-g -O3 -D_FILE_OFFSET_BITS=64
 
-all: fastahack
+# Use ?= to allow overriding from the env or command-line
+CXX ?=		g++
+CXXFLAGS ?=	-O3
+PREFIX ?=	./stage
+STRIP_CMD ?=	strip
+INSTALL ?=	install -c
+MKDIR ?=	mkdir -p
 
-fastahack: Fasta.o FastaHack.cpp split.o disorder.o
-	$(CXX) $(CFLAGS) Fasta.o FastaHack.cpp split.o disorder.o -o fastahack -lboost_iostreams -lz
+# Required flags that we shouldn't override
+CXXFLAGS +=	-D_FILE_OFFSET_BITS=64
+CXXFLAGS +=	-lboost_iostreams -lz
+
+OBJS =	Fasta.o FastaHack.o split.o disorder.o
+
+all:	fastahack
+
+fastahack: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o fastahack
+
+FastaHack.o: Fasta.h FastaHack.cpp
+	$(CXX) $(CXXFLAGS) -c FastaHack.cpp
 
 Fasta.o: Fasta.h Fasta.cpp
-	$(CXX) $(CFLAGS) -c Fasta.cpp
+	$(CXX) $(CXXFLAGS) -c Fasta.cpp
 
 split.o: split.h split.cpp
-	$(CXX) $(CFLAGS) -c split.cpp
+	$(CXX) $(CXXFLAGS) -c split.cpp
 
 disorder.o: disorder.c disorder.h
-	$(CXX) $(CFLAGS) -c disorder.c
+	$(CXX) $(CXXFLAGS) -c disorder.c
+
+install: fastahack
+	$(MKDIR) $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL) fastahack $(DESTDIR)$(PREFIX)/bin
+
+install-strip: install
+	$(STRIP_CMD) $(DESTDIR)$(PREFIX)/bin/fastahack
 
 clean:
-	rm -f fastahack *.o
+	rm -rf fastahack *.o stage
 
 .PHONY: clean
